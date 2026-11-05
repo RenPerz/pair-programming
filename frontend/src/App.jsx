@@ -10,6 +10,7 @@ import {
   Hash 
 } from 'lucide-react';
 import Backchannel from './Backchannel';
+import Matchmaking from './Matchmaking';
 import './App.css';
 
 const API_BASE = 'http://localhost:8000';
@@ -25,32 +26,39 @@ export default function App() {
   const [errorAuth, setErrorAuth] = useState('');
   const [cargandoAuth, setCargandoAuth] = useState(false);
 
-  const [misClases, setMisClases] = useState([]);
-  const [claseSeleccionadaId, setClaseSeleccionadaId] = useState(null);
+  const [misClases, setMisClases] = useState([
+    { clase_id: 1, materia_codigo: "SIS-241", materia_nombre: "Sistemas de Información II" }
+  ]);
+  const [claseSeleccionadaId, setClaseSeleccionadaId] = useState(1);
   const [detalleClase, setDetalleClase] = useState(null);
   const [seccionActiva, setSeccionActiva] = useState('feed');
 
+  // 1. Obtener el detalle de una clase específica
+  const seleccionarClase = async (id) => {
+    if (!id) return;
+    setClaseSeleccionadaId(id);
+    try {
+      const res = await axios.get(`${API_BASE}/clases/${id}/detalle`);
+      setDetalleClase(res.data);
+    } catch (err) {
+      console.error("Error al obtener detalle de la clase:", err);
+    }
+  };
+
+  // 2. Cargar listado global de asignaturas
   const cargarClases = async () => {
     if (!usuario) return;
     try {
       const res = await axios.get(`${API_BASE}/clases/mis-clases/${usuario.id}`);
       const clases = res.data || [];
       setMisClases(clases);
-      if (clases.length > 0 && !claseSeleccionadaId) {
+      
+      // Si hay asignaturas y no hay ninguna seleccionada, activar la primera
+      if (clases.length > 0) {
         seleccionarClase(clases[0].clase_id);
       }
     } catch (err) {
       console.error("Error al cargar materias:", err);
-    }
-  };
-
-  const seleccionarClase = async (id) => {
-    setClaseSeleccionadaId(id);
-    try {
-      const res = await axios.get(`${API_BASE}/clases/${id}/detalle`);
-      setDetalleClase(res.data);
-    } catch (err) {
-      console.error("Error al obtener detalle:", err);
     }
   };
 
@@ -60,6 +68,7 @@ export default function App() {
     }
   }, [usuario]);
 
+  // Manejador de Login
   const handleLogin = async (e) => {
     e.preventDefault();
     setErrorAuth('');
@@ -88,7 +97,7 @@ export default function App() {
     setDetalleClase(null);
   };
 
-  // VISTA DE LOGIN
+  // VISTA 1: INICIO DE SESIÓN
   if (!usuario) {
     return (
       <div className="auth-wrapper">
@@ -156,10 +165,10 @@ export default function App() {
     );
   }
 
-  // WORKSPACE PRINCIPAL
+  // VISTA 2: WORKSPACE COMPLETO
   return (
     <div className="workspace-container">
-      {/* SIDEBAR LATERAL */}
+      {/* BARRA LATERAL */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="brand-icon">
@@ -169,22 +178,28 @@ export default function App() {
         </div>
 
         <div className="sidebar-section">
-          <span className="sidebar-label">Asignaturas Disponibles</span>
+          <span className="sidebar-label">Asignaturas</span>
         </div>
 
         <div className="sidebar-nav">
-          {misClases.map((c) => (
-            <button
-              key={c.clase_id}
-              className={`nav-item ${claseSeleccionadaId === c.clase_id ? 'active' : ''}`}
-              onClick={() => seleccionarClase(c.clase_id)}
-            >
-              <span className="nav-badge">{c.materia_codigo || "SIS"}</span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {c.materia_nombre}
-              </span>
-            </button>
-          ))}
+          {misClases.length === 0 ? (
+            <div style={{ padding: '16px 12px', fontSize: '0.8rem', color: '#64748b' }}>
+              Conectando asignaturas...
+            </div>
+          ) : (
+            misClases.map((c) => (
+              <button
+                key={c.clase_id}
+                className={`nav-item ${claseSeleccionadaId === c.clase_id ? 'active' : ''}`}
+                onClick={() => seleccionarClase(c.clase_id)}
+              >
+                <span className="nav-badge">{c.materia_codigo || "SIS"}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {c.materia_nombre}
+                </span>
+              </button>
+            ))
+          )}
         </div>
 
         <div className="sidebar-footer">
@@ -203,15 +218,19 @@ export default function App() {
         </div>
       </aside>
 
-      {/* ÁREA DE CONTENIDO */}
+      {/* ÁREA PRINCIPAL */}
       <main className="main-stage">
-        {detalleClase ? (
+        {claseSeleccionadaId ? (
           <>
             <header className="topbar">
               <div className="topbar-left">
                 <Hash size={18} color="var(--primary)" />
-                <h2 className="topbar-title">{detalleClase.materia}</h2>
-                <span className="topbar-tag">Grupo {detalleClase.grupo}</span>
+                <h2 className="topbar-title">
+                  {detalleClase ? detalleClase.materia : "Sistemas de Información II"}
+                </h2>
+                <span className="topbar-tag">
+                  {detalleClase ? `Grupo ${detalleClase.grupo}` : "Grupo 1"}
+                </span>
               </div>
 
               <nav className="topbar-tabs">
@@ -237,14 +256,17 @@ export default function App() {
             </header>
 
             <div className="stage-content">
+              {/* TABLÓN */}
               {seccionActiva === 'feed' && (
                 <div>
                   <div style={{ marginBottom: '20px' }}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Novedades de la Cátedra</h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Docente: {detalleClase.docente}</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Docente: {detalleClase?.docente || "Cargando..."}
+                    </p>
                   </div>
 
-                  {detalleClase.publicaciones.length === 0 ? (
+                  {!detalleClase || detalleClase.publicaciones.length === 0 ? (
                     <div className="nexus-card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
                       No hay avisos publicados en esta materia.
                     </div>
@@ -268,25 +290,21 @@ export default function App() {
                 </div>
               )}
 
+              {/* HU-01: PIZARRA */}
               {seccionActiva === 'backchannel' && (
                 <Backchannel claseId={claseSeleccionadaId} usuario={usuario} />
               )}
 
+              {/* HU-02: MATCHMAKING */}
               {seccionActiva === 'matchmaking' && (
-                <div className="nexus-card" style={{ textAlign: 'center', padding: '60px 20px' }}>
-                  <Users size={48} color="var(--primary)" style={{ marginBottom: '14px' }} />
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Red de Formación de Equipos y Estudio (HU-NEXUS-02)</h3>
-                  <p style={{ color: 'var(--text-muted)', marginTop: '6px', maxWidth: '480px', margin: '6px auto 0' }}>
-                    Directorio de estudiantes según habilidades y disponibilidad.
-                  </p>
-                </div>
+                <Matchmaking claseId={claseSeleccionadaId} usuario={usuario} />
               )}
             </div>
           </>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
             <BookOpen size={40} color="#cbd5e1" />
-            <p style={{ fontWeight: 500, marginTop: '12px' }}>Cargando asignaturas...</p>
+            <p style={{ fontWeight: 500, marginTop: '12px' }}>Selecciona o carga una materia desde el menú lateral.</p>
           </div>
         )}
       </main>

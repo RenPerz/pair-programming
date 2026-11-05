@@ -4,7 +4,8 @@ import { ThumbsUp, CheckCircle, Send, UserCheck, EyeOff, HelpCircle } from 'luci
 
 const API_BASE = 'http://localhost:8000';
 
-export default function Backchannel({ claseId, usuario }) {
+export default function Backchannel({ claseId = 1, usuario }) {
+  const idClaseFinal = claseId || 1;
   const [preguntas, setPreguntas] = useState([]);
   const [nuevaPregunta, setNuevaPregunta] = useState('');
   const [esAnonimo, setEsAnonimo] = useState(true);

@@ -7,8 +7,8 @@ router = APIRouter(prefix="/clases", tags=["Clases"])
 
 @router.get("/mis-clases/{usuario_id}")
 def listar_todas_las_clases(usuario_id: int, db: Session = Depends(get_db)):
-    # Devolver todas las asignaturas existentes en la plataforma
-    clases = db.query(Clase).order_by(Clase.materia_codigo.asc()).all()
+    # Filtrar estrictamente la asignatura oficial del sistema (ID: 1)
+    clases = db.query(Clase).filter(Clase.id == 1).all()
     
     return [
         {

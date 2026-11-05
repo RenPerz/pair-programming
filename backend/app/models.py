@@ -68,3 +68,23 @@ class VotoPregunta(Base):
     __table_args__ = (
         UniqueConstraint('pregunta_id', 'usuario_id', name='uq_voto_pregunta_usuario'),
     )
+
+# ==========================================
+# MODELO HU-02: MATCHMAKING PARA EQUIPOS
+# ==========================================
+class PerfilMatchmaking(Base):
+    __tablename__ = "perfiles_matchmaking"
+
+    id = Column(Integer, primary_key=True, index=True)
+    clase_id = Column(Integer, ForeignKey("clases.id"), nullable=False)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    rol_preferido = Column(String(100), nullable=False)  # Ej: Frontend, Backend, Base de Datos, Fullstack, Documentación
+    habilidades = Column(String(255), nullable=True)     # Ej: React, Python, SQL, Docker
+    disponibilidad = Column(String(100), nullable=False) # Mañanas, Tardes, Noches, Fines de semana
+    estado = Column(String(50), default="Buscando equipo") # "Buscando equipo" | "Equipo completo"
+    contacto = Column(String(150), nullable=True)        # Telegram, WhatsApp, Email alternativo
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('clase_id', 'usuario_id', name='uq_perfil_clase_usuario'),
+    )
